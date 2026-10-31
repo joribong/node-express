@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 
 process.env.NODE_ENV = 'test';
+process.env.DB_PATH = ':memory:';
 const app = require('../app');
 const store = require('../models/todoStore');
 

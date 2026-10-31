@@ -1,49 +1,68 @@
 /**
- * In-memory Todo store.
- * Data lives only for the lifetime of the process (it is lost on restart).
+ * Todo store backed by SQLite (see db/index.js).
  */
+const db = require('../db');
 
-let todos = [];
-let nextId = 1;
+const statements = {
+  listAll: db.prepare('SELECT * FROM todos ORDER BY id'),
+  listByCompleted: db.prepare('SELECT * FROM todos WHERE completed = ? ORDER BY id'),
+  get: db.prepare('SELECT * FROM todos WHERE id = ?'),
+  insert: db.prepare(
+    'INSERT INTO todos (title, completed, created_at, updated_at) VALUES (?, ?, ?, ?)'
+  ),
+  update: db.prepare(
+    'UPDATE todos SET title = ?, completed = ?, updated_at = ? WHERE id = ?'
+  ),
+  remove: db.prepare('DELETE FROM todos WHERE id = ?'),
+};
+
+// Convert a database row into the API shape.
+function toTodo(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    title: row.title,
+    completed: row.completed === 1,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 function list(filter = {}) {
-  if (typeof filter.completed === 'boolean') {
-    return todos.filter((todo) => todo.completed === filter.completed);
-  }
-  return todos.slice();
+  const rows =
+    typeof filter.completed === 'boolean'
+      ? statements.listByCompleted.all(filter.completed ? 1 : 0)
+      : statements.listAll.all();
+  return rows.map(toTodo);
 }
 
 function get(id) {
-  return todos.find((todo) => todo.id === id) || null;
+  return toTodo(statements.get.get(id));
 }
 
 function create({ title, completed = false }) {
   const now = new Date().toISOString();
-  const todo = { id: nextId++, title, completed, createdAt: now, updatedAt: now };
-  todos.push(todo);
-  return todo;
+  const result = statements.insert.run(title, completed ? 1 : 0, now, now);
+  return get(Number(result.lastInsertRowid));
 }
 
-function update(id, changes) {
+const update = db.transaction((id, changes) => {
   const todo = get(id);
   if (!todo) return null;
-  if (changes.title !== undefined) todo.title = changes.title;
-  if (changes.completed !== undefined) todo.completed = changes.completed;
-  todo.updatedAt = new Date().toISOString();
-  return todo;
-}
+  const title = changes.title !== undefined ? changes.title : todo.title;
+  const completed = changes.completed !== undefined ? changes.completed : todo.completed;
+  statements.update.run(title, completed ? 1 : 0, new Date().toISOString(), id);
+  return get(id);
+});
 
 function remove(id) {
-  const index = todos.findIndex((todo) => todo.id === id);
-  if (index === -1) return false;
-  todos.splice(index, 1);
-  return true;
+  return statements.remove.run(id).changes > 0;
 }
 
-// Used by tests to start from a clean state.
-function reset() {
-  todos = [];
-  nextId = 1;
-}
+// Delete all todos and restart ids from 1. Used by tests.
+const reset = db.transaction(() => {
+  db.exec('DELETE FROM todos');
+  db.exec("DELETE FROM sqlite_sequence WHERE name = 'todos'");
+});
 
 module.exports = { list, get, create, update, remove, reset };

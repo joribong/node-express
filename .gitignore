@@ -34,3 +34,6 @@ jspm_packages
 buildpath.js
 .test/
 lib/
+
+# SQLite database files
+data/

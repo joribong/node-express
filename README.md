@@ -22,7 +22,22 @@ npm test
 
 ## Todo REST API
 
-Base URL: `/api/todos` (JSON). Data is stored in memory and is lost when the server restarts.
+Base URL: `/api/todos` (JSON).
+
+## Database
+
+Todos are stored in SQLite via [better-sqlite3](https://github.com/WiseLibs/better-sqlite3).
+No separate database server is needed; the table is created automatically on startup.
+
+| Env var | Default | Description |
+|---|---|---|
+| `DB_PATH` | `data/app.db` | SQLite file path (`:memory:` for an in-memory DB). The `data/` folder is git-ignored. |
+
+```
+DB_PATH=/var/lib/myapp/app.db npm start
+```
+
+Tests run against an in-memory database, so they never touch your data file.
 
 | Method | Path | Description | Success |
 |---|---|---|---|
