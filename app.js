@@ -6,6 +6,7 @@ var logger = require('morgan');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
+var todosRouter = require('./routes/todos');
 
 var app = express();
 
@@ -13,7 +14,9 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
-app.use(logger('dev'));
+if (app.get('env') !== 'test') {
+  app.use(logger('dev'));
+}
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
@@ -21,6 +24,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
+app.use('/api/todos', todosRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -29,12 +33,27 @@ app.use(function(req, res, next) {
 
 // error handler
 app.use(function(err, req, res, next) {
+  var status = err.status || err.statusCode || 500;
+
+  // API requests get JSON errors instead of an HTML page
+  if (req.originalUrl.startsWith('/api/')) {
+    var body = {
+      error: {
+        status: status,
+        // hide internal error details for unexpected (5xx) errors
+        message: err.expose ? err.message : 'Internal Server Error'
+      }
+    };
+    if (err.details) body.error.details = err.details;
+    return res.status(status).json(body);
+  }
+
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
   // render the error page
-  res.status(err.status || 500);
+  res.status(status);
   res.render('error');
 });
 
