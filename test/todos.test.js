@@ -66,6 +66,14 @@ describe('POST /api/todos', () => {
     assert.equal(res.status, 400);
   });
 
+  it('rejects a request without a JSON body', async () => {
+    // In Express 5, req.body is undefined when no body parser matched.
+    const res = await fetch(baseUrl, { method: 'POST' });
+    assert.equal(res.status, 400);
+    const body = await res.json();
+    assert.deepEqual(body.error.details, ['Request body must be a JSON object']);
+  });
+
   it('returns a JSON error for malformed JSON', async () => {
     const res = await request('', { method: 'POST', rawBody: '{bad json' });
     assert.equal(res.status, 400);

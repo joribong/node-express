@@ -2,6 +2,8 @@
 
 
 
+Requires Node.js 22 or later (Express 5, better-sqlite3).
+
 ## Install
 
 ```
