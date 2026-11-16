@@ -9,6 +9,7 @@
 
 from dataclasses import dataclass, asdict
 from pathlib import Path
+import argparse
 import copy
 import csv
 import json
@@ -343,9 +344,24 @@ def bom_rows(parts):
     return rows
 
 
-def write_bom(parts):
+def bom_items(parts):
+    """웹 화면용 부품 목록 (종류 이름 포함)."""
+    seen = {}
+    for kind, shape in parts:
+        seen.setdefault(kind, []).append(shape)
+    items = []
+    for kind, shapes in seen.items():
+        no, name, color, _, price, note = KINDS[kind]
+        each = part_mass(kind, shapes[0])
+        items.append({"kind": kind, "no": no, "name": name, "qty": len(shapes), "mass_each_g": round(each, 1),
+                      "mass_g": round(each * len(shapes)), "price_usd": price, "note": note,
+                      "color": [round(c, 2) for c in color]})
+    return items
+
+
+def write_bom(parts, out=OUT):
     rows = bom_rows(parts)
-    with open(OUT / "module1_bom.csv", "w", newline="", encoding="utf-8-sig") as f:
+    with open(out / "module1_bom.csv", "w", newline="", encoding="utf-8-sig") as f:
         csv.writer(f).writerows(rows)
     return rows
 
@@ -372,16 +388,34 @@ def build(p, out=OUT, drawings=True):
         "outer_size_mm": [round(bb.size.X), round(bb.size.Y), round(bb.size.Z)],
         "part_count": len(parts),
         "params": asdict(p),
+        "bom": bom_items(parts),
     }
+    write_bom(parts, out)
     (out / "module1_info.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
     return module, parts, info
 
 
 def main():
-    p = Params()
-    module, parts, info = build(p)
+    ap = argparse.ArgumentParser(description="모듈 1호 생성")
+    ap.add_argument("--params", help='바꿀 치수를 JSON 으로. 예: \'{"length": 140}\'')
+    ap.add_argument("--out", help="결과 폴더 (기본: robot-cad/out)")
+    ap.add_argument("--no-drawings", action="store_true", help="형상 확인용 도면 생략 (빠름)")
+    args = ap.parse_args()
+
+    values = asdict(Params())
+    if args.params:
+        for key, value in json.loads(args.params).items():
+            if key not in values:
+                raise SystemExit(f"알 수 없는 치수 이름: {key}")
+            values[key] = float(value)
+    p = Params(**values)
+    out = Path(args.out) if args.out else OUT
+    try:
+        module, parts, info = build(p, out=out, drawings=not args.no_drawings and out == OUT)
+    except AssertionError as e:
+        raise SystemExit(f"설계 검사 실패: {e}")
     print("검사 통과: 부품 간섭 없음, X·Y 방향 결합 시 간섭 없음, 핀-구멍 위치 일치")
-    for r in write_bom(parts):
+    for r in bom_rows(parts):
         print(" | ".join(str(x) for x in r))
     print(f"외형 {info['outer_size_mm']} mm, 무게 {info['mass_g']} g, 무게중심 {info['center_of_mass_mm']}")
 

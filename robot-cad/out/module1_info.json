@@ -53,5 +53,142 @@
     "pcb_t": 1.6,
     "pcb_z": 36,
     "standoff_r": 2.5
-  }
+  },
+  "bom": [
+    {
+      "kind": "body",
+      "no": "M1-001",
+      "name": "본체",
+      "qty": 1,
+      "mass_each_g": 405.2,
+      "mass_g": 405,
+      "price_usd": null,
+      "note": "ABS 수지, 결합 핀·기판 받침 일체형",
+      "color": [
+        0.8,
+        0.82,
+        0.85
+      ]
+    },
+    {
+      "kind": "lid",
+      "no": "M1-002",
+      "name": "덮개",
+      "qty": 1,
+      "mass_each_g": 45.3,
+      "mass_g": 45,
+      "price_usd": null,
+      "note": "ABS 수지",
+      "color": [
+        0.25,
+        0.45,
+        0.8
+      ]
+    },
+    {
+      "kind": "wheel",
+      "no": "M1-003",
+      "name": "바퀴",
+      "qty": 4,
+      "mass_each_g": 12.3,
+      "mass_g": 49,
+      "price_usd": null,
+      "note": "수지 휠 + 고무 타이어",
+      "color": [
+        0.15,
+        0.15,
+        0.15
+      ]
+    },
+    {
+      "kind": "motor",
+      "no": "M1-101",
+      "name": "기어모터 (N20 급)",
+      "qty": 4,
+      "mass_each_g": 10.0,
+      "mass_g": 40,
+      "price_usd": 10.0,
+      "note": "바퀴마다 1개, 연장축 필요",
+      "color": [
+        0.75,
+        0.6,
+        0.2
+      ]
+    },
+    {
+      "kind": "cell",
+      "no": "M1-102",
+      "name": "배터리 셀 18650",
+      "qty": 2,
+      "mass_each_g": 46.0,
+      "mass_g": 92,
+      "price_usd": 5.0,
+      "note": "2개 직렬 7.4V 가정",
+      "color": [
+        0.2,
+        0.65,
+        0.35
+      ]
+    },
+    {
+      "kind": "pcb",
+      "no": "M1-103",
+      "name": "제어 기판",
+      "qty": 1,
+      "mass_each_g": 25.0,
+      "mass_g": 25,
+      "price_usd": 15.0,
+      "note": "ESP32 급 + 모터 드라이버 + 충전 회로",
+      "color": [
+        0.1,
+        0.45,
+        0.25
+      ]
+    },
+    {
+      "kind": "magnet",
+      "no": "M1-104",
+      "name": "결합용 자석",
+      "qty": 4,
+      "mass_each_g": 2.5,
+      "mass_g": 10,
+      "price_usd": 1.0,
+      "note": "지름 12 x 3, 잠금장치로 교체 예정",
+      "color": [
+        0.7,
+        0.7,
+        0.75
+      ]
+    },
+    {
+      "kind": "pogo",
+      "no": "M1-105",
+      "name": "스프링 접점 핀",
+      "qty": 8,
+      "mass_each_g": 0.3,
+      "mass_g": 2,
+      "price_usd": 0.4,
+      "note": "면마다 +, - 각 1개",
+      "color": [
+        0.85,
+        0.7,
+        0.25
+      ]
+    },
+    {
+      "kind": "pad",
+      "no": "M1-106",
+      "name": "접촉판",
+      "qty": 8,
+      "mass_each_g": 0.1,
+      "mass_g": 1,
+      "price_usd": 0.1,
+      "note": "면마다 +, - 각 1개",
+      "color": [
+        0.85,
+        0.7,
+        0.25
+      ]
+    }
+  ]
 }

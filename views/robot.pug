@@ -1,0 +1,66 @@
+doctype html
+html(lang='ko')
+  head
+    meta(charset='utf-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1')
+    title= title
+    link(rel='stylesheet', href='/robot/robot.css')
+    script(type='importmap').
+      { "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/" } }
+  body
+    header
+      h1 모듈 로봇 설계 뷰어
+      p.sub 좁은 곳은 혼자, 무거운 일은 합체해서
+    main
+      section.stage
+        .toolbar
+          label 보기
+            select#model
+          label.check
+            input#showLid(type='checkbox', checked)
+            | 덮개
+          label.check
+            input#ghostBody(type='checkbox')
+            | 본체 투명하게
+          button#resetView(type='button') 시점 초기화
+        #viewport
+          #status 불러오는 중…
+        p.hint 마우스 왼쪽 끌기: 회전 · 휠: 확대 · 오른쪽 끌기: 이동
+      aside.panel
+        nav.tabs
+          button.tab.active(type='button', data-tab='info') 정보·부품표
+          button.tab(type='button', data-tab='edit') 치수 변경
+          button.tab(type='button', data-tab='cluster') 합체·시뮬레이션
+          button.tab(type='button', data-tab='files') 도면·파일
+        #tab-info.tabpane.active
+          h2 모듈 요약
+          dl#summary
+          h2 부품표
+          p.note 행에 마우스를 올리면 3D 화면에서 해당 부품이 강조됩니다.
+          .scroll
+            table#bom
+        #tab-edit.tabpane
+          h2 치수 변경
+          p.note 값을 바꾸고 '다시 만들기'를 누르면 설계 코드가 실행되어 새 형상과 부품표가 나옵니다. 약 10초 걸립니다. 부품이 서로 겹치는 치수는 거부됩니다.
+          form#editForm
+          .actions
+            button#rebuild(type='button') 다시 만들기
+            button#resetParams(type='button').secondary 기본값으로
+          p#buildMsg
+        #tab-cluster.tabpane
+          h2 합체 형태 비교
+          p.note#clusterNote
+          .scroll
+            table#clusters
+          h2 시뮬레이션
+          p.note#simNote
+          video#simVideo(controls, muted, loop, playsinline)
+          .scroll
+            table#simTable
+        #tab-files.tabpane
+          h2 도면
+          ul#drawings
+          h2 3D 파일 (STEP)
+          ul#steps
+          p.note STEP 은 가공·3D 프린팅 업체에 보내는 표준 3D 형식입니다. DXF 는 오토캐드 등에서 열립니다.
+    script(type='module', src='/robot/viewer.js')
