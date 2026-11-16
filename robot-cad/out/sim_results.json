@@ -1,0 +1,45 @@
+{
+  "assumptions": {
+    "mu_wheel": 0.8,
+    "mu_load": 0.5,
+    "mu_face": 0.1,
+    "motor_torque_Nm": 0.06,
+    "module_mass_kg": 0.67,
+    "rigid_joints": true
+  },
+  "video": {
+    "load_kg": 3.0,
+    "moved_m": {
+      "solo": 0.00028473895827729745,
+      "team": 0.39989060618560557
+    },
+    "peak_joint_force_N": 12.3,
+    "peak_joint_torque_Nm": 1.4
+  },
+  "max_load_by_shape": [
+    {
+      "shape": "1대",
+      "modules": 1,
+      "sim_max_load_kg": 1.3,
+      "estimate_max_load_kg": 1.1
+    },
+    {
+      "shape": "2대 (앞뒤)",
+      "modules": 2,
+      "sim_max_load_kg": 2.5,
+      "estimate_max_load_kg": 2.1
+    },
+    {
+      "shape": "4대 (2 x 2)",
+      "modules": 4,
+      "sim_max_load_kg": 5.3,
+      "estimate_max_load_kg": 4.3
+    },
+    {
+      "shape": "9대 (3 x 3)",
+      "modules": 9,
+      "sim_max_load_kg": 11.4,
+      "estimate_max_load_kg": 9.6
+    }
+  ]
+}
