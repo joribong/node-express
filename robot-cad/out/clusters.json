@@ -1,0 +1,181 @@
+{
+  "assumptions": {
+    "mu_wheel": 0.8,
+    "mu_load": 0.5
+  },
+  "clusters": [
+    {
+      "name": "single",
+      "description": "단독 1대",
+      "modules": 1,
+      "cells": [
+        [
+          0,
+          0
+        ]
+      ],
+      "joints": 0,
+      "size_mm": [
+        134,
+        134,
+        69
+      ],
+      "mass_kg": 0.67,
+      "max_push_N": 5.3,
+      "max_load_kg": 1.1,
+      "top_area_cm2": 144
+    },
+    {
+      "name": "line4",
+      "description": "일렬 4대 (좁은 통로를 지나며 길게 연결)",
+      "modules": 4,
+      "cells": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "joints": 3,
+      "size_mm": [
+        494,
+        134,
+        69
+      ],
+      "mass_kg": 2.68,
+      "max_push_N": 21.0,
+      "max_load_kg": 4.3,
+      "top_area_cm2": 576
+    },
+    {
+      "name": "square4",
+      "description": "사각 2 x 2 (짐을 올리는 받침, 밀기)",
+      "modules": 4,
+      "cells": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "joints": 4,
+      "size_mm": [
+        254,
+        254,
+        69
+      ],
+      "mass_kg": 2.68,
+      "max_push_N": 21.0,
+      "max_load_kg": 4.3,
+      "top_area_cm2": 576
+    },
+    {
+      "name": "lshape4",
+      "description": "ㄴ자 4대 (모서리를 감싸 밀기)",
+      "modules": 4,
+      "cells": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "joints": 3,
+      "size_mm": [
+        374,
+        254,
+        69
+      ],
+      "mass_kg": 2.68,
+      "max_push_N": 21.0,
+      "max_load_kg": 4.3,
+      "top_area_cm2": 576
+    },
+    {
+      "name": "square9",
+      "description": "사각 3 x 3 (큰 받침)",
+      "modules": 9,
+      "cells": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "joints": 12,
+      "size_mm": [
+        374,
+        374,
+        69
+      ],
+      "mass_kg": 6.03,
+      "max_push_N": 47.3,
+      "max_load_kg": 9.6,
+      "top_area_cm2": 1296
+    }
+  ]
+}

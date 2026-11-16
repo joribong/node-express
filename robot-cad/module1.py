@@ -319,6 +319,11 @@ def export_views(shape, name, hidden_lines=True):
     dxf.write(str(OUT / f"{name}.dxf"))
 
 
+def export_glb(shape, path):
+    """웹 뷰어용 3D 파일. 화면 표시용이라 곡면을 조금 거칠게 나눠 용량을 줄인다."""
+    export_gltf(shape, str(path), binary=True, linear_deflection=0.05, angular_deflection=0.3)
+
+
 def bom_rows(parts):
     rows = [("품번", "품명", "수량", "개당무게_g", "무게합_g", "개당단가_USD(추정)", "금액_USD(추정)", "비고")]
     seen = {}
@@ -353,7 +358,7 @@ def build(p, out=OUT, drawings=True):
     check_docking(p)
     module = make_module(p, parts=parts)
     export_step(module, str(out / "module1.step"))
-    export_gltf(module, str(out / "module1.glb"), binary=True)
+    export_glb(module, out / "module1.glb")
     if drawings:
         export_views(module, "module1_views")
         # 덮개를 벗긴 내부 배치도
