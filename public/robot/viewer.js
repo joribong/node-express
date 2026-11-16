@@ -55,7 +55,7 @@ function frameModel(object) {
 
 // 부품 이름은 "종류_번호" 형식 (예: motor_3). 같은 이름이 여러 번 나오면
 // 불러올 때 뒤에 번호가 더 붙으므로(motor_3_1) 앞부분의 종류만 꺼낸다.
-const KIND = /^(body|lid|wheel|motor|cell|pcb|magnet|pogo|pad)_\d+/;
+const KIND = /^(body|lid|wheel|motor|cell|pcb|magnet|pogo|pad|latch|servo)_\d+/;
 const kindOf = (mesh) => {
   for (let node = mesh; node; node = node.parent) {
     const found = KIND.exec(node.name || '');

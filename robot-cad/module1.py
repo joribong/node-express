@@ -59,6 +59,23 @@ class Params:
     pad_r: float = 2.4
     pad_t: float = 0.5
     pad_recess: float = 1.0  # 접촉판 자리 깊이 (결합 시 스프링 핀이 0.3 눌림)
+    # 잠금장치 (T형 볼트를 90도 돌려 상대 면의 홈 뒤에 건다. 왼쪽 볼트, 오른쪽 홈)
+    latch_dx: float = 30         # 면 중심에서 좌우 거리
+    latch_dy: float = 16         # 면 중심에서 위로
+    latch_shaft_r: float = 2     # 볼트 축 반지름
+    latch_head_len: float = 12   # T형 머리 길이
+    latch_head_w: float = 4      # T형 머리 폭
+    latch_head_t: float = 3      # T형 머리 두께
+    latch_wall: float = 3        # 머리가 걸리는 벽 두께 (홈 앞쪽 벽)
+    latch_clear: float = 0.2     # 머리와 벽 사이 틈
+    latch_collar_r: float = 4    # 볼트가 빠지지 않게 안쪽 벽에 걸리는 턱
+    latch_collar_t: float = 2
+    # 잠금용 서보모터 (9g 급 대표 치수)
+    servo_l: float = 23          # 긴 변
+    servo_t: float = 12.5        # 두께
+    servo_d: float = 26          # 축 방향 깊이
+    servo_offset: float = 6      # 긴 변 끝에서 출력축까지
+    servo_gap: float = 3         # 안쪽 벽에서 서보 앞면까지
     # 모터 (N20 급 소형 기어모터 대표 치수)
     motor_w: float = 12      # X 방향
     motor_h: float = 10      # Z 방향
@@ -73,7 +90,7 @@ class Params:
     pcb_l: float = 70
     pcb_w: float = 60
     pcb_t: float = 1.6
-    pcb_z: float = 36        # 기판 아랫면 높이
+    pcb_z: float = 30        # 기판 아랫면 높이 (위쪽은 잠금용 서보 자리)
     standoff_r: float = 2.5
 
 
@@ -108,6 +125,13 @@ def side_planes(p):
     return [Plane(origin=o, x_dir=up.cross(n), z_dir=n) for o, n in faces]
 
 
+def face_walls(p):
+    """옆면 4곳(side_planes 와 같은 순서)의 벽 두께: 면에서 내부 공간까지."""
+    cx, cy = cavity_size(p)
+    tx, ty = (p.length - cx) / 2, (p.width - cy) / 2
+    return [tx, tx, ty, ty]
+
+
 def standoff_xy(p):
     return [(sx * (p.pcb_l / 2 - 4), sy * (p.pcb_w / 2 - 4)) for sx in (1, -1) for sy in (1, -1)]
 
@@ -127,7 +151,35 @@ def connector(p):
     for dz in (p.contact_dz, -p.contact_dz):
         cut.append(Pos(-p.contact_dx, dz, 0) * Cylinder(p.pogo_r, p.pogo_len - p.pogo_out, align=TOP))
         cut.append(Pos(p.contact_dx, dz, 0) * Cylinder(p.pad_r + 0.1, p.pad_recess, align=TOP))
+    # 잠금장치: 왼쪽은 볼트 축 구멍(내부 공간까지 관통), 오른쪽은 세로 홈 + 머리가 도는 자리
+    cut.append(Pos(-p.latch_dx, p.latch_dy, 0) * Cylinder(p.latch_shaft_r + 0.2, max(p.length, p.width) / 3, align=TOP))
+    cut.append(Pos(p.latch_dx, p.latch_dy, 0) * Box(p.latch_head_w + 0.8, p.latch_head_len + 1.0, p.latch_wall, align=TOP))
+    cut.append(Pos(p.latch_dx, p.latch_dy, -p.latch_wall) *
+               Cylinder(p.latch_head_len / 2 + 0.8, latch_pocket_depth(p), align=TOP))
     return add, cut
+
+
+def latch_pocket_depth(p):
+    return p.latch_head_t + 2 * p.latch_clear + 0.4
+
+
+def make_latch_bolt(p, wall, locked):
+    """잠금 볼트 (면 기준 좌표). locked=False 면 머리가 세로(홈과 같은 방향)라 빠진다."""
+    z0 = p.latch_wall + p.latch_clear                   # 머리 아랫면: 상대 벽 바로 뒤
+    head = Pos(0, 0, z0) * Box(p.latch_head_len, p.latch_head_w, p.latch_head_t, align=BOTTOM)
+    if not locked:
+        head = Rot(0, 0, 90) * head
+    back = wall + p.servo_gap                           # 축은 서보 앞면까지
+    shaft = Pos(0, 0, z0 + p.latch_head_t) * Cylinder(p.latch_shaft_r, z0 + p.latch_head_t + back, align=TOP)
+    collar = Pos(0, 0, -wall) * Cylinder(p.latch_collar_r, p.latch_collar_t, align=TOP)
+    return Pos(-p.latch_dx, p.latch_dy, 0) * (head + shaft + collar)
+
+
+def make_latch_servo(p, wall):
+    """잠금 볼트를 돌리는 서보 (면 기준 좌표). 몸통은 면 중심 쪽으로 뻗는다."""
+    x0 = -p.latch_dx - p.servo_offset
+    box = Box(p.servo_l, p.servo_t, p.servo_d, align=(Align.MIN, Align.CENTER, Align.MAX))
+    return Pos(x0, p.latch_dy, -(wall + p.servo_gap)) * box
 
 
 def make_body(p):
@@ -187,16 +239,18 @@ def make_pcb(p):
     return Pos(0, 0, p.pcb_z) * Box(p.pcb_l, p.pcb_w, p.pcb_t, align=BOTTOM)
 
 
-def make_face_parts(p):
-    """옆면마다 들어가는 자석·스프링 핀·접촉판."""
-    magnets, pogos, pads = [], [], []
-    for plane in side_planes(p):
+def make_face_parts(p, locked=False):
+    """옆면마다 들어가는 자석·스프링 핀·접촉판·잠금 볼트·서보."""
+    magnets, pogos, pads, latches, servos = [], [], [], [], []
+    for plane, wall in zip(side_planes(p), face_walls(p)):
         loc = plane.location
+        latches.append(loc * make_latch_bolt(p, wall, locked))
+        servos.append(loc * make_latch_servo(p, wall))
         magnets.append(loc * Cylinder(p.magnet_r - 0.1, p.magnet_d, align=TOP))
         for dz in (p.contact_dz, -p.contact_dz):
             pogos.append(loc * Pos(-p.contact_dx, dz, p.pogo_out) * Cylinder(p.pogo_r, p.pogo_len, align=TOP))
             pads.append(loc * Pos(p.contact_dx, dz, -p.pad_recess) * Cylinder(p.pad_r, p.pad_t, align=BOTTOM))
-    return magnets, pogos, pads
+    return magnets, pogos, pads, latches, servos
 
 
 # 부품 종류별 정보: 품번, 품명, 색, 무게 계산 방식, 소량 구매 단가(달러, 조사 메모 기준 추정)
@@ -208,21 +262,24 @@ KINDS = {
     "motor":  ("M1-101", "기어모터 (N20 급)", (0.75, 0.60, 0.20), ("each", 10.0),       10.0,  "바퀴마다 1개, 연장축 필요"),
     "cell":   ("M1-102", "배터리 셀 18650",  (0.20, 0.65, 0.35), ("each", 46.0),       5.0,   "2개 직렬 7.4V 가정"),
     "pcb":    ("M1-103", "제어 기판",        (0.10, 0.45, 0.25), ("each", 25.0),       15.0,  "ESP32 급 + 모터 드라이버 + 충전 회로"),
-    "magnet": ("M1-104", "결합용 자석",      (0.70, 0.70, 0.75), ("density", 7.5e-3),  1.0,   "지름 12 x 3, 잠금장치로 교체 예정"),
+    "magnet": ("M1-104", "결합용 자석",      (0.70, 0.70, 0.75), ("density", 7.5e-3),  1.0,   "지름 12 x 3, 붙을 때 위치를 잡는 용도"),
     "pogo":   ("M1-105", "스프링 접점 핀",   (0.85, 0.70, 0.25), ("each", 0.3),        0.4,   "면마다 +, - 각 1개"),
     "pad":    ("M1-106", "접촉판",           (0.85, 0.70, 0.25), ("each", 0.1),        0.1,   "면마다 +, - 각 1개"),
+    "latch":  ("M1-107", "잠금 볼트 (T형)",  (0.55, 0.57, 0.62), ("density", 7.85e-3), 1.0,   "강재, 면마다 1개. 90도 돌려 잠금"),
+    "servo":  ("M1-108", "소형 서보모터 (9g 급)", (0.20, 0.35, 0.75), ("each", 9.0),   3.0,   "면마다 1개, 잠금 볼트 회전"),
 }
 
 
-def make_parts(p):
-    """[(종류, 형상)] 목록."""
+def make_parts(p, locked=False):
+    """[(종류, 형상)] 목록. locked=True 면 잠금 볼트를 잠근 상태로 만든다."""
     parts = [("body", make_body(p)), ("lid", make_lid(p))]
     for c in wheel_centers(p):
         parts.append(("wheel", make_wheel(p, c)))
         parts.append(("motor", make_motor(p, c)))
     parts += [("cell", make_cell(p, 1)), ("cell", make_cell(p, -1)), ("pcb", make_pcb(p))]
-    magnets, pogos, pads = make_face_parts(p)
+    magnets, pogos, pads, latches, servos = make_face_parts(p, locked)
     parts += [("magnet", m) for m in magnets] + [("pogo", g) for g in pogos] + [("pad", d) for d in pads]
+    parts += [("latch", b) for b in latches] + [("servo", v) for v in servos]
     return parts
 
 
@@ -272,6 +329,26 @@ def check_docking(p):
         tight = Params(**{**asdict(p), "pin_clear": -0.5})
         ov = _volume(a.intersect(Pos(shift) * make_body(tight)))
         assert ov > 1, f"{name} 방향에서 핀과 구멍 위치가 어긋남"
+    return True
+
+
+def check_latch(p):
+    """붙인 상태에서 잠금 볼트가 (1) 풀린 방향이면 걸림 없이 빠지고 (2) 잠근 방향이면 빠지지 않는지 확인."""
+    body = make_body(p)
+    planes, walls = side_planes(p), face_walls(p)
+    for idx, shift, name in ((0, Vector(p.length, 0, 0), "X"), (2, Vector(0, p.width, 0), "Y")):
+        loc = planes[idx].location
+        opened = loc * make_latch_bolt(p, walls[idx], locked=False)
+        closed = loc * make_latch_bolt(p, walls[idx], locked=True)
+        step = shift.normalized()
+        for bolt, state in ((opened, "풀림"), (closed, "잠금")):
+            assert _volume(bolt.intersect(body)) < 1e-2, f"{name} 면 잠금 볼트({state})가 자기 본체와 겹침"
+            assert _volume(bolt.intersect(Pos(shift) * body)) < 1e-2, f"{name} 면 잠금 볼트({state})가 상대 본체와 겹침"
+        for pull in (1, 3, 6):      # 상대를 떼어 내는 방향으로 조금씩 옮겨 본다
+            moved = Pos(shift + step * pull) * body
+            assert _volume(opened.intersect(moved)) < 1e-2, f"{name} 면: 풀린 상태인데 {pull} mm 에서 걸림"
+        held = _volume(closed.intersect(Pos(shift + step * 1.0) * body))
+        assert held > 1, f"{name} 면: 잠근 상태인데 상대가 빠짐"
     return True
 
 
@@ -334,7 +411,7 @@ def bom_rows(parts):
     for kind, shapes in seen.items():
         no, name, _, _, price, note = KINDS[kind]
         qty = len(shapes)
-        each = part_mass(kind, shapes[0])
+        each = sum(part_mass(kind, x) for x in shapes) / qty      # 면마다 길이가 다른 부품은 평균
         cost = price * qty if price is not None else None
         total_m += each * qty
         total_c += cost or 0
@@ -352,7 +429,7 @@ def bom_items(parts):
     items = []
     for kind, shapes in seen.items():
         no, name, color, _, price, note = KINDS[kind]
-        each = part_mass(kind, shapes[0])
+        each = sum(part_mass(kind, x) for x in shapes) / len(shapes)
         items.append({"kind": kind, "no": no, "name": name, "qty": len(shapes), "mass_each_g": round(each, 1),
                       "mass_g": round(each * len(shapes)), "price_usd": price, "note": note,
                       "color": [round(c, 2) for c in color]})
@@ -372,6 +449,7 @@ def build(p, out=OUT, drawings=True):
     parts = make_parts(p)
     check_internal(parts)
     check_docking(p)
+    check_latch(p)
     module = make_module(p, parts=parts)
     export_step(module, str(out / "module1.step"))
     export_glb(module, out / "module1.glb")
@@ -414,7 +492,7 @@ def main():
         module, parts, info = build(p, out=out, drawings=not args.no_drawings and out == OUT)
     except AssertionError as e:
         raise SystemExit(f"설계 검사 실패: {e}")
-    print("검사 통과: 부품 간섭 없음, X·Y 방향 결합 시 간섭 없음, 핀-구멍 위치 일치")
+    print("검사 통과: 부품 간섭 없음, X·Y 방향 결합 시 간섭 없음, 핀-구멍 위치 일치, 잠금 볼트 풀림·잠금 동작 확인")
     for r in bom_rows(parts):
         print(" | ".join(str(x) for x in r))
     print(f"외형 {info['outer_size_mm']} mm, 무게 {info['mass_g']} g, 무게중심 {info['center_of_mass_mm']}")

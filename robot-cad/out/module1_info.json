@@ -1,16 +1,16 @@
 {
-  "mass_g": 670,
+  "mass_g": 717,
   "center_of_mass_mm": [
     -0.0,
     -0.0,
-    27.5
+    28.5
   ],
   "outer_size_mm": [
     134,
     134,
     69
   ],
-  "part_count": 33,
+  "part_count": 41,
   "params": {
     "length": 120,
     "width": 120,
@@ -40,6 +40,21 @@
     "pad_r": 2.4,
     "pad_t": 0.5,
     "pad_recess": 1.0,
+    "latch_dx": 30,
+    "latch_dy": 16,
+    "latch_shaft_r": 2,
+    "latch_head_len": 12,
+    "latch_head_w": 4,
+    "latch_head_t": 3,
+    "latch_wall": 3,
+    "latch_clear": 0.2,
+    "latch_collar_r": 4,
+    "latch_collar_t": 2,
+    "servo_l": 23,
+    "servo_t": 12.5,
+    "servo_d": 26,
+    "servo_offset": 6,
+    "servo_gap": 3,
     "motor_w": 12,
     "motor_h": 10,
     "motor_len": 24,
@@ -51,7 +66,7 @@
     "pcb_l": 70,
     "pcb_w": 60,
     "pcb_t": 1.6,
-    "pcb_z": 36,
+    "pcb_z": 30,
     "standoff_r": 2.5
   },
   "bom": [
@@ -60,8 +75,8 @@
       "no": "M1-001",
       "name": "본체",
       "qty": 1,
-      "mass_each_g": 405.2,
-      "mass_g": 405,
+      "mass_each_g": 400.6,
+      "mass_g": 401,
       "price_usd": null,
       "note": "ABS 수지, 결합 핀·기판 받침 일체형",
       "color": [
@@ -153,7 +168,7 @@
       "mass_each_g": 2.5,
       "mass_g": 10,
       "price_usd": 1.0,
-      "note": "지름 12 x 3, 잠금장치로 교체 예정",
+      "note": "지름 12 x 3, 붙을 때 위치를 잡는 용도",
       "color": [
         0.7,
         0.7,
@@ -188,6 +203,36 @@
         0.85,
         0.7,
         0.25
+      ]
+    },
+    {
+      "kind": "latch",
+      "no": "M1-107",
+      "name": "잠금 볼트 (T형)",
+      "qty": 4,
+      "mass_each_g": 3.9,
+      "mass_g": 16,
+      "price_usd": 1.0,
+      "note": "강재, 면마다 1개. 90도 돌려 잠금",
+      "color": [
+        0.55,
+        0.57,
+        0.62
+      ]
+    },
+    {
+      "kind": "servo",
+      "no": "M1-108",
+      "name": "소형 서보모터 (9g 급)",
+      "qty": 4,
+      "mass_each_g": 9.0,
+      "mass_g": 36,
+      "price_usd": 3.0,
+      "note": "면마다 1개, 잠금 볼트 회전",
+      "color": [
+        0.2,
+        0.35,
+        0.75
       ]
     }
   ]

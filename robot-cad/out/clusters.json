@@ -20,8 +20,8 @@
         134,
         69
       ],
-      "mass_kg": 0.67,
-      "max_push_N": 5.3,
+      "mass_kg": 0.72,
+      "max_push_N": 5.6,
       "max_load_kg": 1.1,
       "top_area_cm2": 144
     },
@@ -53,9 +53,9 @@
         134,
         69
       ],
-      "mass_kg": 2.68,
-      "max_push_N": 21.0,
-      "max_load_kg": 4.3,
+      "mass_kg": 2.87,
+      "max_push_N": 22.5,
+      "max_load_kg": 4.6,
       "top_area_cm2": 576
     },
     {
@@ -86,9 +86,9 @@
         254,
         69
       ],
-      "mass_kg": 2.68,
-      "max_push_N": 21.0,
-      "max_load_kg": 4.3,
+      "mass_kg": 2.87,
+      "max_push_N": 22.5,
+      "max_load_kg": 4.6,
       "top_area_cm2": 576
     },
     {
@@ -119,9 +119,9 @@
         254,
         69
       ],
-      "mass_kg": 2.68,
-      "max_push_N": 21.0,
-      "max_load_kg": 4.3,
+      "mass_kg": 2.87,
+      "max_push_N": 22.5,
+      "max_load_kg": 4.6,
       "top_area_cm2": 576
     },
     {
@@ -172,9 +172,9 @@
         374,
         69
       ],
-      "mass_kg": 6.03,
-      "max_push_N": 47.3,
-      "max_load_kg": 9.6,
+      "mass_kg": 6.45,
+      "max_push_N": 50.6,
+      "max_load_kg": 10.3,
       "top_area_cm2": 1296
     }
   ]

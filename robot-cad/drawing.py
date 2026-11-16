@@ -13,7 +13,7 @@ from html import escape
 from pathlib import Path
 
 import ezdxf
-from build123d import Compound, Vector
+from build123d import Align, Box, Compound, Pos, Vector
 
 import module1 as m
 
@@ -204,6 +204,8 @@ def body_drawing(p):
     sh.mark("front", (0, 0, H / 2), "C", dx=0, dy=7)
     sh.mark("front", (-p.contact_dx, 0, H / 2 + p.contact_dz), "D", dx=-5, dy=2)
     sh.mark("front", (p.contact_dx, 0, H / 2 + p.contact_dz), "E", dx=5, dy=2)
+    sh.mark("front", (-p.latch_dx, 0, H / 2 + p.latch_dy), "H", dx=-5, dy=-4)
+    sh.mark("front", (p.latch_dx, 0, H / 2 + p.latch_dy), "I", dx=6, dy=5)
 
     # 평면도: 폭, 내부 공간, 바퀴 축 간격
     cx, cy = m.cavity_size(p)
@@ -235,10 +237,12 @@ def body_drawing(p):
         ("E", f"접촉판 자리 Ø{fmt(2 * (p.pad_r + 0.1))}, 깊이 {fmt(p.pad_recess)}. 면마다 2곳"),
         ("F", f"바퀴집 Ø{fmt(2 * (p.wheel_r + p.well_gap))} x 폭 {fmt(m.well_width(p))}, 축 구멍 Ø{fmt(2 * (p.shaft_r + 0.3))}. 4곳"),
         ("G", f"기판 받침 기둥 Ø{fmt(2 * p.standoff_r)}, 윗면 높이 {fmt(p.pcb_z)}. 4곳"),
+        ("H", f"잠금 볼트 축 구멍 Ø{fmt(2 * (p.latch_shaft_r + 0.2))} 관통. 면 중심에서 왼쪽 {fmt(p.latch_dx)}, 위 {fmt(p.latch_dy)}. 면마다 1곳"),
+        ("I", f"잠금 홈 {fmt(p.latch_head_w + 0.8)} x {fmt(p.latch_head_len + 1)} 깊이 {fmt(p.latch_wall)}, 그 뒤 Ø{fmt(p.latch_head_len + 1.6)} 깊이 {fmt(m.latch_pocket_depth(p))}. 면 중심에서 오른쪽 {fmt(p.latch_dx)}, 위 {fmt(p.latch_dy)}"),
         ("-", f"바퀴 축 높이: 바닥면에서 {fmt(wz)} (우측면도)"),
         ("-", f"바닥 두께 {fmt(p.floor_t)}, 세로 모서리 R{fmt(p.corner_r)}, 내부 공간은 위로 열림"),
     ]
-    sh.table(248, 112, (10, 150), notes, row_h=4.6, size=2.6)
+    sh.table(248, 108, (10, 150), notes, row_h=4.6, size=2.6)
     sh.frame()
     sh.write("M1-001_body_drawing")
 
@@ -259,6 +263,9 @@ def assembly_drawing(p):
     sh.mark("top", (0, 0, 0), "103", dx=6, dy=-6)
     sh.mark("top", (p.cell_len / 2 - 4, -p.cell_dy, 0), "102", dx=22, dy=40)
     sh.mark("top", (p.length / 2, 0, 0), "104", dx=7, dy=4)
+    wall = m.face_walls(p)[0]
+    sh.mark("top", (p.length / 2 + p.latch_wall + 2, -p.latch_dx, 0), "107", dx=8, dy=-3)
+    sh.mark("top", (p.length / 2 - wall - p.servo_gap - 8, -p.latch_dx + 10, 0), "108", dx=22, dy=6)
     sh.mark("front", (w0.X, 0, w0.Z - p.wheel_r + 2), "003", dx=6, dy=5)
     sh.mark("front", (0, 0, p.height + p.lid_t / 2), "002", dx=5, dy=-5)
     sh.mark("front", (-p.length / 2 + 6, 0, p.height / 2 + 4), "001", dx=-9, dy=-6)
@@ -275,8 +282,8 @@ def assembly_drawing(p):
     for i, line in enumerate([
         f"총 무게 약 {mass:.0f} g (배선·나사 제외), 무게중심 높이 바닥면에서 {cog.Z:.0f} mm",
         f"외형 {bb.size.X:.0f} x {bb.size.Y:.0f} x {bb.size.Z:.0f} mm (결합 핀·바퀴 포함)",
-        "결합부: 암수 구분 없음. 밖에서 볼 때 왼쪽 핀·오른쪽 구멍, 윗줄 접점 +, 아랫줄 접점 -",
-        "102 배터리는 기판(103) 아래에 있다. 구매 부품(101~106)은 규격품 대표 치수로 자리만 잡은 것이며 제품 선정 후 수정한다.",
+        "결합부: 암수 구분 없음. 밖에서 볼 때 왼쪽 핀·오른쪽 구멍, 윗줄 접점 +, 아랫줄 접점 -. 잠금장치는 도면 M1-107 참조",
+        "102 배터리는 기판(103) 아래에 있다. 구매 부품(101~108)은 규격품 대표 치수로 자리만 잡은 것이며 제품 선정 후 수정한다.",
         "단가는 소량 구매 기준 추정값이다. 부품표 CSV 참조.",
     ]):
         sh.text(190, y + i * 6.5, "· " + line, size=3)
@@ -284,12 +291,93 @@ def assembly_drawing(p):
     sh.write("M1-000_assembly_drawing")
 
 
+def latch_drawing(p):
+    """잠금장치 도면: 잠금 볼트 부품도 + 풀림·잠금 상태 단면 + 강도 요약."""
+    import joint_loads
+
+    L, H = p.length, p.height
+    wall = m.face_walls(p)[0]
+    loc = m.side_planes(p)[0].location              # +X 면
+    zc = H / 2 + p.latch_dy                          # 볼트 축 높이
+    yc = -p.latch_dx                                 # +X 면에서 볼트의 세계 좌표 Y
+    body_a = m.make_body(p)
+    body_b = Pos(L, 0, 0) * m.make_body(p)
+    servo = loc * m.make_latch_servo(p, wall)
+    # 볼트 축 높이에서 자른 아래쪽 절반만, 잠금장치 둘레만 남긴다
+    rx0, rx1 = L / 2 - wall - p.servo_gap - 12, L / 2 + 13       # 서보 앞부분부터 상대 모듈 안쪽까지
+    ry0, ry1 = yc - 8, yc + p.servo_l - p.servo_offset + 3
+    region = Pos((rx0 + rx1) / 2, (ry0 + ry1) / 2, zc) * Box(rx1 - rx0, ry1 - ry0, 14, align=(Align.CENTER, Align.CENTER, Align.MAX))
+    sh = Sheet("결합부 잠금장치", "M1-107", "볼트: 강재 / 본체: ABS 수지", scale="표기")
+    centre = Vector((rx0 + rx1) / 2, (ry0 + ry1) / 2, zc - 7)
+    half_h = (ry1 - ry0) / 2 * 3
+    for row, (locked, label) in enumerate(((False, "풀림: 머리가 세로 (홈과 같은 방향) → 빠진다"),
+                                           (True, "잠금: 머리를 90° 돌림 → 벽 뒤에 걸린다"))):
+        bolt = loc * m.make_latch_bolt(p, wall, locked)
+        pieces = []
+        for shape in (body_a, body_b, bolt, servo):
+            found = shape.intersect(region)
+            if found:
+                pieces += list(found) if isinstance(found, (list, tuple)) else [found]
+        cut = Compound(children=pieces)
+        at = (112, 82 + row * 118)
+        sh.add_view("top", cut, centre, at, scale=3, hidden=False)
+        sh.text(20, at[1] - half_h - 5, f"단면 {'A' if row == 0 else 'B'} (척도 3:1, 볼트 축 높이에서 자른 평면)  {label}", size=3.4, bold=True)
+        x_face = at[0] + (L / 2 - centre.X) * 3
+        sh.text(x_face - 3, at[1] + half_h + 6, "← 모듈 1", size=3, anchor="end")
+        sh.text(x_face + 3, at[1] + half_h + 6, "모듈 2 →", size=3)
+        sh.mark("top", (L / 2 + p.latch_wall + p.latch_clear + 1.5, yc, zc), "1", dx=4, dy=-9)
+        sh.mark("top", (L / 2 - wall - p.servo_gap - 10, yc + 6, zc), "2", dx=-3, dy=-9)
+        sh.mark("top", (L / 2 - wall - 1, yc - 3, zc), "3", dx=-2, dy=9)
+        if row == 1:
+            sh.dim_h("top", (L / 2, ry0, zc), (L / 2 + p.latch_wall, ry0, zc), at[1] + half_h + 15, label=f"벽 {fmt(p.latch_wall)}")
+            sh.dim_h("top", (L / 2 - wall, ry0, zc), (L / 2, ry0, zc), at[1] + half_h + 22, label=f"벽 {fmt(wall)}")
+
+    # 잠금 볼트 부품도 (척도 4:1): 옆에서 본 모습과 머리 쪽에서 본 모습
+    bolt = m.make_latch_bolt(p, wall, locked=True)      # 면 기준 좌표: 축이 Z 방향
+    bc = Vector(-p.latch_dx, p.latch_dy, 0)
+    sh.text(232, 22, "잠금 볼트 M1-107 (척도 4:1)", size=3.4, bold=True)
+    sh.add_view("front", bolt, bc + Vector(0, 0, -6), (268, 88), scale=4, hidden=False)   # 가로 = 머리 길이, 세로 = 축
+    sh.add_view("top", bolt, bc, (352, 88), scale=4, hidden=False)
+    z0 = p.latch_wall + p.latch_clear
+    top, bottom = z0 + p.latch_head_t, -(wall + p.servo_gap)
+    hx = -p.latch_dx
+    sh.dim_h("front", (hx - p.latch_head_len / 2, 0, top), (hx + p.latch_head_len / 2, 0, top), 88 - (top + 6) * 4 - 6)
+    sh.dim_v("front", (hx + p.latch_head_len / 2, 0, z0), (hx + p.latch_head_len / 2, 0, top), 268 + p.latch_head_len * 2 + 8)
+    sh.dim_v("front", (hx - p.latch_head_len / 2, 0, bottom), (hx - p.latch_head_len / 2, 0, top), 268 - p.latch_head_len * 2 - 10)
+    sh.dim_h("front", (hx - p.latch_shaft_r, 0, bottom), (hx + p.latch_shaft_r, 0, bottom), 88 - (bottom + 6) * 4 + 7, label=f"Ø{fmt(2 * p.latch_shaft_r)}")
+    sh.dim_h("front", (hx - p.latch_collar_r, 0, -wall), (hx + p.latch_collar_r, 0, -wall), 88 - (bottom + 6) * 4 + 14, label=f"턱 Ø{fmt(2 * p.latch_collar_r)}")
+    sh.dim_v("top", (hx + p.latch_head_len / 2, p.latch_dy - p.latch_head_w / 2, 0),
+             (hx + p.latch_head_len / 2, p.latch_dy + p.latch_head_w / 2, 0), 352 + p.latch_head_len * 2 + 8)
+    sh.text(352, 122, "머리 쪽에서 본 모습", size=2.8, anchor="middle")
+    sh.text(232, 160, f"턱 두께 {fmt(p.latch_collar_t)}, 머리 아랫면에서 턱 윗면까지 {fmt(z0 + wall - p.latch_collar_t)} (X 면 기준)", size=2.8)
+
+    sh.table(232, 165, (10, 168), [
+        ("기호", "내용"),
+        ("1", "잠금 볼트. 강재. T형 머리가 상대 모듈의 세로 홈으로 들어간 뒤 90° 돌아 벽 뒤에 걸린다"),
+        ("2", "소형 서보모터(9g 급). 볼트를 90° 돌린다. 걸린 뒤에는 모터 힘 없이 형상으로 버틴다"),
+        ("3", "턱. 볼트가 당겨질 때 자기 모듈의 안쪽 벽에 걸려 힘을 본체로 전달한다"),
+        ("-", "면마다 왼쪽에 볼트, 오른쪽에 홈이 있어 붙은 면에서는 볼트 2개가 서로의 홈에 걸린다"),
+        ("-", "한쪽 모듈이 고장 나도 다른 쪽 볼트 1개로 붙어 있을 수 있다"),
+    ], row_h=4.4, size=2.6)
+
+    calc = joint_loads.compute(p)
+    rows = [("상황", "필요한 힘", "안전율 (볼트 1개)", "안전율 (볼트 2개)")]
+    for c in calc["cases"]:
+        rows.append((c["name"], f"{c['required_N']:.0f} N", f"{c['sf_single']:.1f}", f"{c['sf_double']:.1f}"))
+    sh.text(232, 200, f"강도 요약: 볼트 1개의 허용 힘 약 {calc['capacity_N']:.0f} N ({calc['limit']} 기준, 가정값)", size=3, bold=True)
+    sh.table(232, 203, (82, 28, 34, 34), rows, row_h=4.3, size=2.6)
+    sh.text(232, 203 + 4.3 * len(rows) + 5, "허용 응력은 가정값이다. 3D 프린팅 부품은 실제 시험으로 확인해야 한다.", size=2.6)
+    sh.frame()
+    sh.write("M1-107_latch_drawing")
+
+
 def main():
     p = m.Params()
     OUT.mkdir(exist_ok=True)
     body_drawing(p)
     assembly_drawing(p)
-    print("도면 생성 완료: M1-001_body_drawing, M1-000_assembly_drawing (SVG, DXF)")
+    latch_drawing(p)
+    print("도면 생성 완료: M1-001_body_drawing, M1-000_assembly_drawing, M1-107_latch_drawing (SVG, DXF)")
 
 
 if __name__ == "__main__":

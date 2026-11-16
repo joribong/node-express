@@ -70,7 +70,7 @@ def build_cluster(p, name, parts, body):
 def main():
     p = m.Params()
     m.OUT.mkdir(exist_ok=True)
-    parts = m.make_parts(p)
+    parts = m.make_parts(p, locked=True)      # 합체 상태이므로 잠금 볼트를 잠근 모습으로
     body = parts[0][1]
     results = [build_cluster(p, name, parts, body) for name in SHAPES]
 
